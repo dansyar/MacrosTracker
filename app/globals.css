@@ -1,0 +1,41 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: dark;
+}
+
+html, body {
+  background-color: #0a0f0c;
+  color: #e6f0ea;
+  -webkit-font-smoothing: antialiased;
+}
+
+@layer components {
+  .card {
+    @apply bg-bg-card border border-border rounded-2xl p-4;
+  }
+  .btn-primary {
+    @apply bg-accent hover:bg-accent-hover text-black font-semibold rounded-xl px-4 py-2.5 transition disabled:opacity-50 disabled:cursor-not-allowed;
+  }
+  .btn-secondary {
+    @apply bg-bg-elevated hover:bg-border text-fg font-medium rounded-xl px-4 py-2.5 border border-border transition;
+  }
+  .btn-ghost {
+    @apply text-fg-muted hover:text-fg px-3 py-2 rounded-lg transition;
+  }
+  .input {
+    @apply w-full bg-bg-elevated border border-border rounded-xl px-3 py-2.5 text-fg placeholder:text-fg-dim focus:outline-none focus:border-accent transition;
+  }
+  .label {
+    @apply block text-sm font-medium text-fg-muted mb-1.5;
+  }
+}
+
+/* Hide scrollbars on horizontal scroll containers but keep functionality */
+.no-scrollbar::-webkit-scrollbar { display: none; }
+.no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+/* Respect iOS safe area at the bottom of the viewport */
+.safe-bottom { padding-bottom: env(safe-area-inset-bottom); }
