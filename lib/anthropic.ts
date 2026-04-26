@@ -11,8 +11,9 @@ export function getAnthropic(): Anthropic {
   return client;
 }
 
-// Per project spec — vision-capable Sonnet model
-export const CLAUDE_MODEL = "claude-sonnet-4-20250514";
+// Vision-capable Claude model. Override with the CLAUDE_MODEL env var
+// (e.g. set to "claude-sonnet-4-20250514" for higher accuracy at ~3× cost).
+export const CLAUDE_MODEL = process.env.CLAUDE_MODEL ?? "claude-haiku-4-5-20251001";
 
 // Pull the first JSON object out of a string. Claude sometimes wraps JSON
 // in prose or code fences; we want to be permissive but strict on the parse.
