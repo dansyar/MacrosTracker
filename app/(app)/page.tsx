@@ -6,6 +6,8 @@ import toast from "react-hot-toast";
 import { DateNav } from "@/components/DateNav";
 import { ProgressRing } from "@/components/ProgressRing";
 import { MacroBar } from "@/components/MacroBar";
+import { PullToRefresh } from "@/components/PullToRefresh";
+import { Skeleton } from "@/components/Skeleton";
 import { todayISO } from "@/lib/dates";
 
 type Profile = {
@@ -49,6 +51,8 @@ export default function DashboardPage() {
     [date],
   );
 
+  const initialLoad = profile === null && summary === null && loading;
+
   useEffect(() => {
     reload("all");
   }, [reload]);
@@ -88,7 +92,27 @@ export default function DashboardPage() {
   const burned = summary?.calories_burned ?? 0;
   const remaining = Math.max(0, calorieTarget + burned - consumed);
 
+  if (initialLoad) {
+    return (
+      <main className="px-4 pt-6 pb-6 space-y-4">
+        <Skeleton className="h-7 w-32" />
+        <Skeleton className="h-16 rounded-2xl" />
+        <Skeleton className="h-64 rounded-2xl" />
+        <Skeleton className="h-44 rounded-2xl" />
+        <div className="grid grid-cols-2 gap-3">
+          <Skeleton className="h-28 rounded-2xl" />
+          <Skeleton className="h-28 rounded-2xl" />
+        </div>
+        <div className="grid grid-cols-2 gap-3">
+          <Skeleton className="h-20 rounded-2xl" />
+          <Skeleton className="h-20 rounded-2xl" />
+        </div>
+      </main>
+    );
+  }
+
   return (
+    <PullToRefresh onRefresh={() => reload("all")}>
     <main className="px-4 pt-6 pb-6 space-y-4">
       <header className="flex items-baseline justify-between">
         <h1 className="text-2xl font-bold">
@@ -102,8 +126,10 @@ export default function DashboardPage() {
         )}
       </header>
 
-      <div className="card">
-        <DateNav date={date} onChange={setDate} />
+      <div className="sticky top-0 z-20 -mx-4 px-4 pt-2 pb-2 bg-bg/95 backdrop-blur supports-[backdrop-filter]:bg-bg/80">
+        <div className="card !p-2">
+          <DateNav date={date} onChange={setDate} />
+        </div>
       </div>
 
       <section className="card flex flex-col items-center">
@@ -232,10 +258,8 @@ export default function DashboardPage() {
         </div>
       </Link>
 
-      {loading && (
-        <div className="text-center text-fg-dim text-sm py-2">Loading...</div>
-      )}
     </main>
+    </PullToRefresh>
   );
 }
 

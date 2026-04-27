@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { signOut } from "next-auth/react";
 import toast from "react-hot-toast";
 import { calculateTDEE, calculateMacroTargets } from "@/lib/macros";
+import { Skeleton } from "@/components/Skeleton";
 
 type Profile = {
   email: string;
@@ -31,7 +32,14 @@ export default function ProfilePage() {
   }, []);
 
   if (!profile) {
-    return <main className="px-4 pt-6 text-fg-dim">Loading...</main>;
+    return (
+      <main className="px-4 pt-6 pb-6 space-y-4">
+        <Skeleton className="h-7 w-32" />
+        <Skeleton className="h-16 rounded-2xl" />
+        <Skeleton className="h-72 rounded-2xl" />
+        <Skeleton className="h-32 rounded-2xl" />
+      </main>
+    );
   }
 
   const preview =

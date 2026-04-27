@@ -14,6 +14,7 @@ import {
   ReferenceLine,
 } from "recharts";
 import { shiftDays, todayISO, fromISO } from "@/lib/dates";
+import { Skeleton } from "@/components/Skeleton";
 
 type Range = "week" | "month";
 
@@ -122,6 +123,23 @@ export default function HistoryPage() {
     calorieSeries.reduce((sum, d) => sum + d.calories, 0) / Math.max(1, loggedDays || 1),
   );
 
+  if (loading && weights.length === 0 && foodByDate.size === 0) {
+    return (
+      <main className="px-4 pt-6 pb-6 space-y-4">
+        <h1 className="text-2xl font-bold">History</h1>
+        <Skeleton className="h-12 rounded-xl" />
+        <div className="grid grid-cols-3 gap-3">
+          <Skeleton className="h-20 rounded-2xl" />
+          <Skeleton className="h-20 rounded-2xl" />
+          <Skeleton className="h-20 rounded-2xl" />
+        </div>
+        <Skeleton className="h-72 rounded-2xl" />
+        <Skeleton className="h-64 rounded-2xl" />
+        <Skeleton className="h-64 rounded-2xl" />
+      </main>
+    );
+  }
+
   return (
     <main className="px-4 pt-6 pb-6 space-y-4">
       <h1 className="text-2xl font-bold">History</h1>
@@ -216,7 +234,6 @@ export default function HistoryPage() {
         )}
       </section>
 
-      {loading && <div className="text-center text-fg-dim text-sm">Loading...</div>}
     </main>
   );
 }

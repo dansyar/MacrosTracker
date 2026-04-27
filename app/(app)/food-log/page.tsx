@@ -5,6 +5,8 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import toast from "react-hot-toast";
 import { DateNav } from "@/components/DateNav";
+import { SwipeableRow } from "@/components/SwipeableRow";
+import { Skeleton } from "@/components/Skeleton";
 import { todayISO } from "@/lib/dates";
 
 type FoodLog = {
@@ -30,35 +32,44 @@ const MEAL_LABELS: Record<FoodLog["meal_category"], string> = {
 function FoodLogInner() {
   const search = useSearchParams();
   const [date, setDate] = useState(() => search.get("date") || todayISO());
-  const [items, setItems] = useState<FoodLog[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [items, setItems] = useState<FoodLog[] | null>(null);
+  const [refreshing, setRefreshing] = useState(false);
 
   const reload = useCallback(async () => {
-    setLoading(true);
-    const res = await fetch(`/api/food-logs?date=${date}`);
-    const data = await res.json();
-    setItems(data.items || []);
-    setLoading(false);
+    setRefreshing(true);
+    try {
+      const res = await fetch(`/api/food-logs?date=${date}`);
+      const data = await res.json();
+      setItems(data.items || []);
+    } finally {
+      setRefreshing(false);
+    }
   }, [date]);
 
   useEffect(() => {
+    setItems(null);
     reload();
   }, [reload]);
 
   async function remove(id: number) {
-    if (!confirm("Delete this entry?")) return;
+    const target = items?.find((i) => i.id === id);
+    // Optimistic remove with toast undo. If the API fails we restore.
+    setItems((prev) => prev?.filter((i) => i.id !== id) ?? null);
     const res = await fetch(`/api/food-logs/${id}`, { method: "DELETE" });
     if (!res.ok) {
       toast.error("Could not delete");
+      if (target) setItems((prev) => (prev ? [...prev, target] : prev));
       return;
     }
     toast.success("Deleted");
-    setItems((prev) => prev.filter((i) => i.id !== id));
   }
+
+  const initialLoad = items === null;
+  const safeItems = items ?? [];
 
   const grouped = MEAL_ORDER.map((m) => ({
     category: m,
-    entries: items.filter((i) => i.meal_category === m),
+    entries: safeItems.filter((i) => i.meal_category === m),
   }));
 
   return (
@@ -67,11 +78,28 @@ function FoodLogInner() {
         <h1 className="text-2xl font-bold">Food log</h1>
         <Link href="/log-food" className="btn-primary !py-2 !px-3 text-sm">+ Add</Link>
       </header>
-      <div className="card">
-        <DateNav date={date} onChange={setDate} />
+      <div className="sticky top-0 z-20 -mx-4 px-4 pt-2 pb-2 bg-bg/95 backdrop-blur supports-[backdrop-filter]:bg-bg/80">
+        <div className="card !p-2">
+          <DateNav date={date} onChange={setDate} />
+        </div>
       </div>
 
-      {grouped.map(({ category, entries }) => {
+      {initialLoad && (
+        <>
+          {[0, 1, 2, 3].map((i) => (
+            <div key={i} className="card space-y-3">
+              <div className="flex justify-between">
+                <Skeleton className="h-4 w-24" />
+                <Skeleton className="h-4 w-16" />
+              </div>
+              <Skeleton className="h-3 w-3/4" />
+              <Skeleton className="h-3 w-2/3" />
+            </div>
+          ))}
+        </>
+      )}
+
+      {!initialLoad && grouped.map(({ category, entries }) => {
         const totals = entries.reduce(
           (acc, e) => ({
             calories: acc.calories + Number(e.calories),
@@ -82,44 +110,43 @@ function FoodLogInner() {
           { calories: 0, protein_g: 0, carbs_g: 0, fat_g: 0 },
         );
         return (
-          <section key={category} className="card">
-            <div className="flex items-baseline justify-between mb-2">
+          <section key={category} className="card !p-0 overflow-hidden">
+            <div className="flex items-baseline justify-between p-4 pb-2">
               <h2 className="font-semibold">{MEAL_LABELS[category]}</h2>
               <div className="text-sm text-fg-muted tabular-nums">
                 {Math.round(totals.calories)} kcal
               </div>
             </div>
             {entries.length === 0 ? (
-              <div className="text-sm text-fg-dim py-2">
+              <div className="text-sm text-fg-dim px-4 pb-4">
                 <Link href={`/log-food?meal=${category}&date=${date}`} className="text-accent hover:underline">
                   + Add to {MEAL_LABELS[category].toLowerCase()}
                 </Link>
               </div>
             ) : (
-              <ul className="divide-y divide-border">
+              <ul>
                 {entries.map((e) => (
-                  <li key={e.id} className="py-2 flex items-start justify-between gap-2">
-                    <div className="min-w-0 flex-1">
-                      <div className="font-medium truncate">{e.food_name}</div>
-                      {e.portion && (
-                        <div className="text-xs text-fg-muted truncate">{e.portion}</div>
-                      )}
-                      <div className="text-xs text-fg-dim mt-0.5 tabular-nums">
-                        P {Math.round(Number(e.protein_g))}g · C {Math.round(Number(e.carbs_g))}g · F {Math.round(Number(e.fat_g))}g
+                  <li key={e.id} className="border-t border-border first:border-t-0">
+                    <SwipeableRow onDelete={() => remove(e.id)}>
+                      <div className="px-4 py-3 flex items-start justify-between gap-2">
+                        <div className="min-w-0 flex-1">
+                          <div className="font-medium truncate">{e.food_name}</div>
+                          {e.portion && (
+                            <div className="text-xs text-fg-muted truncate">{e.portion}</div>
+                          )}
+                          <div className="text-xs text-fg-dim mt-0.5 tabular-nums">
+                            P {Math.round(Number(e.protein_g))}g · C {Math.round(Number(e.carbs_g))}g · F {Math.round(Number(e.fat_g))}g
+                          </div>
+                        </div>
+                        <div className="text-right shrink-0">
+                          <div className="font-semibold tabular-nums">{Math.round(Number(e.calories))}</div>
+                          <div className="text-[10px] text-fg-dim">swipe ←</div>
+                        </div>
                       </div>
-                    </div>
-                    <div className="text-right shrink-0">
-                      <div className="font-semibold tabular-nums">{Math.round(Number(e.calories))}</div>
-                      <button
-                        onClick={() => remove(e.id)}
-                        className="text-xs text-danger hover:underline mt-1"
-                      >
-                        Delete
-                      </button>
-                    </div>
+                    </SwipeableRow>
                   </li>
                 ))}
-                <li className="pt-2 text-xs text-fg-muted tabular-nums flex justify-between">
+                <li className="border-t border-border px-4 py-2 text-xs text-fg-muted tabular-nums flex justify-between">
                   <span>Subtotal</span>
                   <span>
                     {Math.round(totals.calories)} kcal · P {Math.round(totals.protein_g)} · C {Math.round(totals.carbs_g)} · F {Math.round(totals.fat_g)}
@@ -131,7 +158,9 @@ function FoodLogInner() {
         );
       })}
 
-      {loading && <div className="text-center text-fg-dim text-sm">Loading...</div>}
+      {refreshing && !initialLoad && (
+        <div className="text-center text-fg-dim text-xs">Updating…</div>
+      )}
     </main>
   );
 }

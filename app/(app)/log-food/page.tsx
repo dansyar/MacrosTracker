@@ -209,13 +209,20 @@ function PhotoFlow({
 
   if (!previewUrl) {
     return (
-      <div className="card text-center py-10 space-y-3">
-        <div className="text-4xl">📷</div>
-        <p className="text-fg-muted text-sm">Snap a photo of your meal — Claude will estimate the macros.</p>
-        <button onClick={() => fileInputRef.current?.click()} className="btn-primary">
-          Take or upload photo
-        </button>
+      <label
+        htmlFor="food-photo-input"
+        className="card text-center py-10 px-4 space-y-3 cursor-pointer block transition active:opacity-70 hover:border-accent border-dashed select-none"
+      >
+        <div className="text-5xl">📷</div>
+        <p className="font-semibold">Take or upload a photo</p>
+        <p className="text-fg-muted text-sm max-w-[28ch] mx-auto">
+          Claude will estimate the macros for you. Tap anywhere on this card.
+        </p>
+        <span className="btn-primary inline-flex items-center justify-center pointer-events-none">
+          Choose photo
+        </span>
         <input
+          id="food-photo-input"
           ref={fileInputRef}
           type="file"
           accept="image/*"
@@ -223,7 +230,7 @@ function PhotoFlow({
           className="hidden"
           onChange={onPhotoChange}
         />
-      </div>
+      </label>
     );
   }
 

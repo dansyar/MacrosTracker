@@ -4,6 +4,8 @@ import { useCallback, useEffect, useState } from "react";
 import toast from "react-hot-toast";
 import { useRouter } from "next/navigation";
 import { DateNav } from "@/components/DateNav";
+import { SwipeableRow } from "@/components/SwipeableRow";
+import { Skeleton } from "@/components/Skeleton";
 import { todayISO } from "@/lib/dates";
 
 type ExerciseLog = {
@@ -56,13 +58,15 @@ export default function LogExercisePage() {
   }
 
   async function remove(id: number) {
-    if (!confirm("Delete this entry?")) return;
+    const target = items.find((i) => i.id === id);
+    setItems((prev) => prev.filter((i) => i.id !== id));
     const res = await fetch(`/api/exercise-logs/${id}`, { method: "DELETE" });
     if (!res.ok) {
       toast.error("Could not delete");
+      if (target) setItems((prev) => [...prev, target]);
       return;
     }
-    setItems((prev) => prev.filter((i) => i.id !== id));
+    toast.success("Deleted");
   }
 
   const total = items.reduce((sum, i) => sum + Number(i.calories_burned), 0);
@@ -70,8 +74,10 @@ export default function LogExercisePage() {
   return (
     <main className="px-4 pt-6 pb-6 space-y-4">
       <h1 className="text-2xl font-bold">Exercise</h1>
-      <div className="card">
-        <DateNav date={date} onChange={setDate} />
+      <div className="sticky top-0 z-20 -mx-4 px-4 pt-2 pb-2 bg-bg/95 backdrop-blur supports-[backdrop-filter]:bg-bg/80">
+        <div className="card !p-2">
+          <DateNav date={date} onChange={setDate} />
+        </div>
       </div>
 
       <div className="grid grid-cols-2 gap-1 bg-bg-elevated p-1 rounded-xl border border-border">
@@ -95,29 +101,34 @@ export default function LogExercisePage() {
 
       {tab === "ai" ? <AIForm onSave={save} /> : <ManualExerciseForm onSave={save} />}
 
-      <section className="card">
-        <div className="flex items-baseline justify-between mb-2">
+      <section className="card !p-0 overflow-hidden">
+        <div className="flex items-baseline justify-between p-4 pb-2">
           <h2 className="font-semibold">Today's exercise</h2>
           <div className="text-sm text-fg-muted tabular-nums">{Math.round(total)} kcal burned</div>
         </div>
         {loading ? (
-          <div className="text-sm text-fg-dim py-2">Loading...</div>
+          <div className="px-4 pb-4 space-y-2">
+            <Skeleton className="h-10" />
+            <Skeleton className="h-10" />
+          </div>
         ) : items.length === 0 ? (
-          <div className="text-sm text-fg-dim py-2">Nothing logged yet.</div>
+          <div className="text-sm text-fg-dim px-4 pb-4">Nothing logged yet.</div>
         ) : (
-          <ul className="divide-y divide-border">
+          <ul>
             {items.map((e) => (
-              <li key={e.id} className="py-2 flex items-start justify-between gap-2">
-                <div>
-                  <div className="font-medium">{e.exercise_name}</div>
-                  <div className="text-xs text-fg-muted">{e.duration_mins} min</div>
-                </div>
-                <div className="text-right">
-                  <div className="font-semibold tabular-nums">{Math.round(Number(e.calories_burned))}</div>
-                  <button onClick={() => remove(e.id)} className="text-xs text-danger hover:underline">
-                    Delete
-                  </button>
-                </div>
+              <li key={e.id} className="border-t border-border first:border-t-0">
+                <SwipeableRow onDelete={() => remove(e.id)}>
+                  <div className="px-4 py-3 flex items-start justify-between gap-2">
+                    <div>
+                      <div className="font-medium">{e.exercise_name}</div>
+                      <div className="text-xs text-fg-muted">{e.duration_mins} min</div>
+                    </div>
+                    <div className="text-right shrink-0">
+                      <div className="font-semibold tabular-nums">{Math.round(Number(e.calories_burned))}</div>
+                      <div className="text-[10px] text-fg-dim">swipe ←</div>
+                    </div>
+                  </div>
+                </SwipeableRow>
               </li>
             ))}
           </ul>
