@@ -108,8 +108,8 @@ function LogFoodInner() {
         <button onClick={() => router.back()} className="btn-ghost text-sm">Cancel</button>
       </header>
 
-      <div className="grid grid-cols-2 gap-3">
-        <div className="card !p-3">
+      <div className="card grid grid-cols-2 gap-3 !p-3">
+        <div>
           <label className="label">Date</label>
           <input
             type="date"
@@ -119,7 +119,7 @@ function LogFoodInner() {
             onChange={(e) => setDate(e.target.value)}
           />
         </div>
-        <div className="card !p-3">
+        <div>
           <label className="label">Meal</label>
           <select
             className="input"

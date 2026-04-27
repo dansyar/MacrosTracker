@@ -10,6 +10,13 @@ html, body {
   background-color: #0a0f0c;
   color: #e6f0ea;
   -webkit-font-smoothing: antialiased;
+  -webkit-tap-highlight-color: transparent;
+  overscroll-behavior-y: contain;
+}
+
+/* Prevent iOS Safari from auto-zooming when focusing inputs (<16px triggers zoom). */
+input, select, textarea {
+  font-size: 16px;
 }
 
 @layer components {
@@ -17,13 +24,13 @@ html, body {
     @apply bg-bg-card border border-border rounded-2xl p-4;
   }
   .btn-primary {
-    @apply bg-accent hover:bg-accent-hover text-black font-semibold rounded-xl px-4 py-2.5 transition disabled:opacity-50 disabled:cursor-not-allowed;
+    @apply bg-accent hover:bg-accent-hover active:bg-accent-muted text-black font-semibold rounded-xl px-4 py-3 transition disabled:opacity-50 disabled:cursor-not-allowed select-none;
   }
   .btn-secondary {
-    @apply bg-bg-elevated hover:bg-border text-fg font-medium rounded-xl px-4 py-2.5 border border-border transition;
+    @apply bg-bg-elevated hover:bg-border active:opacity-80 text-fg font-medium rounded-xl px-4 py-3 border border-border transition select-none;
   }
   .btn-ghost {
-    @apply text-fg-muted hover:text-fg px-3 py-2 rounded-lg transition;
+    @apply text-fg-muted hover:text-fg active:opacity-70 px-3 py-2 rounded-lg transition select-none;
   }
   .input {
     @apply w-full bg-bg-elevated border border-border rounded-xl px-3 py-2.5 text-fg placeholder:text-fg-dim focus:outline-none focus:border-accent transition;
@@ -37,5 +44,16 @@ html, body {
 .no-scrollbar::-webkit-scrollbar { display: none; }
 .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
 
-/* Respect iOS safe area at the bottom of the viewport */
+/* iOS safe-area helpers */
 .safe-bottom { padding-bottom: env(safe-area-inset-bottom); }
+.safe-top { padding-top: max(env(safe-area-inset-top), 0.75rem); }
+
+/* iOS-native date/time input alignment */
+input[type="date"], input[type="time"] {
+  min-height: 2.625rem; /* 42px to match other inputs */
+  appearance: none;
+  -webkit-appearance: none;
+}
+input[type="date"]::-webkit-date-and-time-value {
+  text-align: left;
+}
