@@ -23,7 +23,14 @@ type Profile = {
 export default function ProfilePage() {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [editing, setEditing] = useState(false);
+  const [editingTargets, setEditingTargets] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [draftTargets, setDraftTargets] = useState<{
+    tdee: number;
+    protein_target_g: number;
+    carbs_target_g: number;
+    fat_target_g: number;
+  } | null>(null);
 
   useEffect(() => {
     fetch("/api/profile").then(async (r) => {
@@ -55,6 +62,65 @@ export default function ProfilePage() {
           return { tdee, ...calculateMacroTargets({ weightKg: profile.weight_kg!, tdee }) };
         })()
       : null;
+
+  function startEditingTargets() {
+    if (!profile) return;
+    setDraftTargets({
+      tdee: profile.tdee ?? preview?.tdee ?? 0,
+      protein_target_g: profile.protein_target_g ?? preview?.protein_g ?? 0,
+      carbs_target_g: profile.carbs_target_g ?? preview?.carbs_g ?? 0,
+      fat_target_g: profile.fat_target_g ?? preview?.fat_g ?? 0,
+    });
+    setEditingTargets(true);
+  }
+
+  async function saveTargets() {
+    if (!draftTargets) return;
+    setSaving(true);
+    const res = await fetch("/api/profile/targets", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(draftTargets),
+    });
+    setSaving(false);
+    if (!res.ok) {
+      toast.error("Could not save targets");
+      return;
+    }
+    setProfile((p) => (p ? { ...p, ...draftTargets } : p));
+    toast.success("Targets updated");
+    setEditingTargets(false);
+  }
+
+  async function resetTargets() {
+    if (!confirm("Reset to auto-calculated targets?")) return;
+    setSaving(true);
+    const res = await fetch("/api/profile/targets", { method: "DELETE" });
+    setSaving(false);
+    if (!res.ok) {
+      toast.error("Could not reset");
+      return;
+    }
+    const data = (await res.json()) as {
+      tdee: number;
+      protein_g: number;
+      carbs_g: number;
+      fat_g: number;
+    };
+    setProfile((p) =>
+      p
+        ? {
+            ...p,
+            tdee: data.tdee,
+            protein_target_g: data.protein_g,
+            carbs_target_g: data.carbs_g,
+            fat_target_g: data.fat_g,
+          }
+        : p,
+    );
+    toast.success("Reset to auto-calculated");
+    setEditingTargets(false);
+  }
 
   async function save() {
     if (!profile) return;
@@ -187,18 +253,129 @@ export default function ProfilePage() {
       </section>
 
       <section className="card">
-        <h2 className="font-semibold mb-3">Targets</h2>
-        <div className="grid grid-cols-4 gap-2 text-center">
-          <Stat label="kcal" value={profile.tdee ?? preview?.tdee ?? "—"} />
-          <Stat label="Protein" value={profile.protein_target_g ?? preview?.protein_g ?? "—"} suffix="g" />
-          <Stat label="Carbs" value={profile.carbs_target_g ?? preview?.carbs_g ?? "—"} suffix="g" />
-          <Stat label="Fat" value={profile.fat_target_g ?? preview?.fat_g ?? "—"} suffix="g" />
+        <div className="flex items-baseline justify-between mb-3">
+          <h2 className="font-semibold">Targets</h2>
+          {!editingTargets ? (
+            <button onClick={startEditingTargets} className="text-accent text-sm hover:underline">
+              Edit
+            </button>
+          ) : (
+            <button onClick={() => setEditingTargets(false)} className="text-fg-muted text-sm hover:underline">
+              Cancel
+            </button>
+          )}
         </div>
-        <p className="text-xs text-fg-dim mt-3">
-          Targets recalculate automatically from Mifflin-St Jeor when you save your stats.
-        </p>
+
+        {!editingTargets ? (
+          <>
+            <div className="grid grid-cols-4 gap-2 text-center">
+              <Stat label="kcal" value={profile.tdee ?? preview?.tdee ?? "—"} />
+              <Stat label="Protein" value={profile.protein_target_g ?? preview?.protein_g ?? "—"} suffix="g" />
+              <Stat label="Carbs" value={profile.carbs_target_g ?? preview?.carbs_g ?? "—"} suffix="g" />
+              <Stat label="Fat" value={profile.fat_target_g ?? preview?.fat_g ?? "—"} suffix="g" />
+            </div>
+            <p className="text-xs text-fg-dim mt-3">
+              Auto-calculated from Mifflin-St Jeor. Tap Edit to set your own.
+            </p>
+          </>
+        ) : (
+          draftTargets && (
+            <div className="space-y-3">
+              <div className="grid grid-cols-2 gap-3">
+                <Field label="Calories">
+                  <input
+                    className="input"
+                    type="number"
+                    inputMode="numeric"
+                    min={800}
+                    max={8000}
+                    value={draftTargets.tdee}
+                    onChange={(e) =>
+                      setDraftTargets({ ...draftTargets, tdee: Number(e.target.value) || 0 })
+                    }
+                  />
+                </Field>
+                <Field label="Protein (g)">
+                  <input
+                    className="input"
+                    type="number"
+                    inputMode="numeric"
+                    min={0}
+                    max={800}
+                    value={draftTargets.protein_target_g}
+                    onChange={(e) =>
+                      setDraftTargets({ ...draftTargets, protein_target_g: Number(e.target.value) || 0 })
+                    }
+                  />
+                </Field>
+                <Field label="Carbs (g)">
+                  <input
+                    className="input"
+                    type="number"
+                    inputMode="numeric"
+                    min={0}
+                    max={2000}
+                    value={draftTargets.carbs_target_g}
+                    onChange={(e) =>
+                      setDraftTargets({ ...draftTargets, carbs_target_g: Number(e.target.value) || 0 })
+                    }
+                  />
+                </Field>
+                <Field label="Fat (g)">
+                  <input
+                    className="input"
+                    type="number"
+                    inputMode="numeric"
+                    min={0}
+                    max={800}
+                    value={draftTargets.fat_target_g}
+                    onChange={(e) =>
+                      setDraftTargets({ ...draftTargets, fat_target_g: Number(e.target.value) || 0 })
+                    }
+                  />
+                </Field>
+              </div>
+              <MacroPctSummary draft={draftTargets} />
+              <div className="grid grid-cols-2 gap-2">
+                <button onClick={resetTargets} disabled={saving} className="btn-secondary">
+                  Reset to auto
+                </button>
+                <button onClick={saveTargets} disabled={saving} className="btn-primary">
+                  {saving ? "Saving..." : "Save targets"}
+                </button>
+              </div>
+            </div>
+          )
+        )}
       </section>
     </main>
+  );
+}
+
+function MacroPctSummary({
+  draft,
+}: {
+  draft: { tdee: number; protein_target_g: number; carbs_target_g: number; fat_target_g: number };
+}) {
+  const macroKcal = draft.protein_target_g * 4 + draft.carbs_target_g * 4 + draft.fat_target_g * 9;
+  const total = Math.max(1, draft.tdee);
+  const pct = (n: number) => Math.round((n / total) * 100);
+  const diff = macroKcal - draft.tdee;
+  return (
+    <div className="bg-bg-elevated rounded-xl p-3 text-xs space-y-1">
+      <div className="flex justify-between">
+        <span className="text-fg-muted">Macro split</span>
+        <span className="tabular-nums">
+          P {pct(draft.protein_target_g * 4)}% · C {pct(draft.carbs_target_g * 4)}% · F {pct(draft.fat_target_g * 9)}%
+        </span>
+      </div>
+      <div className="flex justify-between">
+        <span className="text-fg-muted">Macros total</span>
+        <span className={`tabular-nums ${Math.abs(diff) > 50 ? "text-warn" : "text-fg-muted"}`}>
+          {macroKcal} kcal {diff !== 0 && `(${diff > 0 ? "+" : ""}${diff} vs target)`}
+        </span>
+      </div>
+    </div>
   );
 }
 

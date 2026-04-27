@@ -41,8 +41,9 @@ function LogFoodInner() {
     (search.get("meal") as Meal) || defaultMealForNow(),
   );
 
-  // Photo flow
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  // Photo flow — two inputs so the user can choose camera vs. gallery
+  const cameraInputRef = useRef<HTMLInputElement>(null);
+  const galleryInputRef = useRef<HTMLInputElement>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [analysing, setAnalysing] = useState(false);
   const [result, setResult] = useState<AnalysisResult | null>(null);
@@ -157,12 +158,14 @@ function LogFoodInner() {
           previewUrl={previewUrl}
           analysing={analysing}
           result={result}
-          fileInputRef={fileInputRef}
+          cameraInputRef={cameraInputRef}
+          galleryInputRef={galleryInputRef}
           onPhotoChange={onPhotoChange}
           onCancel={() => {
             setResult(null);
             setPreviewUrl(null);
-            if (fileInputRef.current) fileInputRef.current.value = "";
+            if (cameraInputRef.current) cameraInputRef.current.value = "";
+            if (galleryInputRef.current) galleryInputRef.current.value = "";
           }}
           onSave={saveResult}
         />
@@ -189,7 +192,8 @@ function PhotoFlow({
   previewUrl,
   analysing,
   result,
-  fileInputRef,
+  cameraInputRef,
+  galleryInputRef,
   onPhotoChange,
   onCancel,
   onSave,
@@ -197,7 +201,8 @@ function PhotoFlow({
   previewUrl: string | null;
   analysing: boolean;
   result: AnalysisResult | null;
-  fileInputRef: React.RefObject<HTMLInputElement>;
+  cameraInputRef: React.RefObject<HTMLInputElement>;
+  galleryInputRef: React.RefObject<HTMLInputElement>;
   onPhotoChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
   onCancel: () => void;
   onSave: (vals: AnalysisResult) => void;
@@ -209,28 +214,46 @@ function PhotoFlow({
 
   if (!previewUrl) {
     return (
-      <label
-        htmlFor="food-photo-input"
-        className="card text-center py-10 px-4 space-y-3 cursor-pointer block transition active:opacity-70 hover:border-accent border-dashed select-none"
-      >
-        <div className="text-5xl">📷</div>
-        <p className="font-semibold">Take or upload a photo</p>
-        <p className="text-fg-muted text-sm max-w-[28ch] mx-auto">
-          Claude will estimate the macros for you. Tap anywhere on this card.
-        </p>
-        <span className="btn-primary inline-flex items-center justify-center pointer-events-none">
-          Choose photo
-        </span>
+      <div className="card text-center py-7 px-4 space-y-4 border-dashed">
+        <div>
+          <div className="text-5xl mb-2">📷</div>
+          <p className="font-semibold">Add a food photo</p>
+          <p className="text-fg-muted text-sm mt-1 max-w-[30ch] mx-auto">
+            Claude will estimate the macros for you.
+          </p>
+        </div>
+        <div className="grid grid-cols-2 gap-2">
+          <label
+            htmlFor="food-photo-camera"
+            className="btn-primary flex items-center justify-center gap-1.5 cursor-pointer select-none"
+          >
+            <CameraIcon /> Take photo
+          </label>
+          <label
+            htmlFor="food-photo-gallery"
+            className="btn-secondary flex items-center justify-center gap-1.5 cursor-pointer select-none"
+          >
+            <GalleryIcon /> Gallery
+          </label>
+        </div>
         <input
-          id="food-photo-input"
-          ref={fileInputRef}
+          id="food-photo-camera"
+          ref={cameraInputRef}
           type="file"
           accept="image/*"
           capture="environment"
           className="hidden"
           onChange={onPhotoChange}
         />
-      </label>
+        <input
+          id="food-photo-gallery"
+          ref={galleryInputRef}
+          type="file"
+          accept="image/*"
+          className="hidden"
+          onChange={onPhotoChange}
+        />
+      </div>
     );
   }
 
@@ -602,5 +625,24 @@ export default function LogFoodPage() {
     <Suspense fallback={<div className="px-4 pt-6 text-fg-dim">Loading...</div>}>
       <LogFoodInner />
     </Suspense>
+  );
+}
+
+function CameraIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+      <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" />
+      <circle cx="12" cy="13" r="4" />
+    </svg>
+  );
+}
+
+function GalleryIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+      <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
+      <circle cx="8.5" cy="8.5" r="1.5" />
+      <path d="M21 15l-5-5L5 21" />
+    </svg>
   );
 }
